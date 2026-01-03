@@ -1,10 +1,29 @@
 services:
-  placeholder:
-    image: nginx:alpine
+  vllm:
+    image: vllm/vllm-openai:latest
     ports:
-      - "8080:80"
+      - "8000:8000"
+    volumes:
+      - ~/.cache/huggingface:/root/.cache/huggingface
+    env_file:
+      - env.example
+    environment:
+      - VLLM_USAGE_STATS=0
+    command:
+      - --model=${MODEL_NAME}
+      - --max-model-len=${VLLM_MAX_MODEL_LEN}
+      - --dtype=half
+      - --gpu-memory-utilization=${VLLM_GPU_MEMORY_UTILIZATION}
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:80"]
-      interval: 10s
-      timeout: 5s
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
       retries: 3
+      start_period: 60s
