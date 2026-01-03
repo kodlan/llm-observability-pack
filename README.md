@@ -19,3 +19,12 @@ A reusable observability kit for LLM text-generation services. Provides SLOs, er
 - Availability: 99.9% successful responses
 - Responsiveness: p95 TTFT ≤ 2.0s for small prompts
 - Token cadence: p95 inter-token latency ≤ 150ms
+
+## Quick Start
+
+```bash
+cp deploy/env.example deploy/.env  # configure model and settings
+make up                            # start services
+make logs                          # view logs
+make down                          # stop services
+```
