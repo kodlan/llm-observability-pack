@@ -1,6 +1,6 @@
 services:
   vllm:
-    image: vllm/vllm-openai:latest
+    image: vllm/vllm-openai:latest-cu130
     ports:
       - "8000:8000"
     volumes:
