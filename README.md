@@ -20,6 +20,17 @@ A reusable observability kit for LLM text-generation services. Provides SLOs, er
 - Responsiveness: p95 TTFT ≤ 2.0s for small prompts
 - Token cadence: p95 inter-token latency ≤ 150ms
 
+## Requirements
+
+- Docker with NVIDIA Container Toolkit
+- NVIDIA driver 535+ (for CUDA 12.x support)
+- GPU with compute capability >= 7.0 (RTX 20xx or newer)
+
+Verify with:
+```bash
+nvidia-smi  # should show Driver 535+ and CUDA 12.x
+```
+
 ## Quick Start
 
 ```bash
@@ -28,3 +39,12 @@ make up                            # start services
 make logs                          # view logs
 make down                          # stop services
 ```
+
+## Services
+
+| Service | URL |
+|---------|-----|
+| vLLM API | http://localhost:8000 |
+| vLLM docs | http://localhost:8000/docs |
+| vLLM metrics | http://localhost:8000/metrics |
+| Prometheus | http://localhost:9090 |
