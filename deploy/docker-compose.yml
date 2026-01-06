@@ -14,6 +14,7 @@ services:
       - --max-model-len=${VLLM_MAX_MODEL_LEN}
       - --dtype=half
       - --gpu-memory-utilization=${VLLM_GPU_MEMORY_UTILIZATION}
+      - --max-num-seqs=16
     deploy:
       resources:
         reservations:
