@@ -1,4 +1,4 @@
-.PHONY: up down logs test lint
+.PHONY: up down logs test lint test-vllm
 
 COMPOSE_FILE := deploy/docker-compose.yml
 
@@ -16,3 +16,6 @@ test:
 
 lint:
 	@echo "No lint yet"
+
+test-vllm:
+	./scripts/test-vllm.sh
