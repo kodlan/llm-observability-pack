@@ -48,6 +48,7 @@ make down                          # stop services
 | vLLM docs | http://localhost:8000/docs |
 | vLLM metrics | http://localhost:8000/metrics |
 | Prometheus | http://localhost:9090 |
+| Grafana | http://localhost:3000 (admin/admin) |
 
 ## Testing
 
