@@ -23,12 +23,12 @@ A reusable observability kit for LLM text-generation services. Provides SLOs, er
 ## Requirements
 
 - Docker with NVIDIA Container Toolkit
-- NVIDIA driver 535+ (for CUDA 12.x support)
+- NVIDIA driver 580+ (for CUDA 13.0 support)
 - GPU with compute capability >= 7.0 (RTX 20xx or newer)
 
 Verify with:
 ```bash
-nvidia-smi  # should show Driver 535+ and CUDA 12.x
+nvidia-smi  # should show Driver 580+ and CUDA 13.0
 ```
 
 ## Quick Start
@@ -48,3 +48,29 @@ make down                          # stop services
 | vLLM docs | http://localhost:8000/docs |
 | vLLM metrics | http://localhost:8000/metrics |
 | Prometheus | http://localhost:9090 |
+
+## Testing
+
+Test vLLM API with sample requests:
+```bash
+make test-vllm
+```
+
+## Prometheus Integration
+
+Verify Prometheus is scraping vLLM metrics:
+
+1. **Check targets** — http://localhost:9090/targets
+   - `vllm` target should show as "UP"
+
+2. **Query metrics**:
+   ```bash
+   # List available vLLM metrics
+   curl -s "http://localhost:9090/api/v1/label/__name__/values" | grep vllm
+   ```
+
+3. **Example metrics** (note the colon in metric names):
+   - `vllm:request_success_total`
+   - `vllm:prompt_tokens_total`
+   - `vllm:generation_tokens_total`
+   - `vllm:time_to_first_token_seconds`
