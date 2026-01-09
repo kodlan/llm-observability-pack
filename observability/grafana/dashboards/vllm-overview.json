@@ -601,12 +601,12 @@
             "type": "prometheus",
             "uid": null
           },
-          "expr": "vllm:gpu_cache_usage_perc",
-          "legendFormat": "GPU Cache",
+          "expr": "vllm:kv_cache_usage_perc",
+          "legendFormat": "KV Cache",
           "refId": "A"
         }
       ],
-      "title": "GPU Cache Usage",
+      "title": "KV Cache Usage",
       "type": "stat"
     },
     {
