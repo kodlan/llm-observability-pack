@@ -1,4 +1,4 @@
-.PHONY: up down logs test lint test-vllm
+.PHONY: up down logs test lint test-vllm load-test
 
 COMPOSE_FILE := deploy/docker-compose.yml
 
@@ -19,3 +19,6 @@ lint:
 
 test-vllm:
 	./scripts/test-vllm.sh
+
+load-test:
+	./scripts/load-test.sh $(CONCURRENCY)
