@@ -1,0 +1,32 @@
+name: "qwen"
+backend: "vllm"
+
+# Model configuration passed to vLLM
+parameters: {
+  key: "model"
+  value: { string_value: "Qwen/Qwen2.5-1.5B-Instruct" }
+}
+parameters: {
+  key: "dtype"
+  value: { string_value: "half" }
+}
+parameters: {
+  key: "max_model_len"
+  value: { string_value: "2048" }
+}
+parameters: {
+  key: "gpu_memory_utilization"
+  value: { string_value: "0.8" }
+}
+parameters: {
+  key: "max_num_seqs"
+  value: { string_value: "16" }
+}
+
+# Instance configuration
+instance_group [
+  {
+    count: 1
+    kind: KIND_GPU
+  }
+]

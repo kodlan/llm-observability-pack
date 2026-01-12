@@ -11,3 +11,8 @@ scrape_configs:
     static_configs:
       - targets: ["vllm:8000"]
     metrics_path: /metrics
+
+  - job_name: "triton"
+    static_configs:
+      - targets: ["triton:8002"]
+    metrics_path: /metrics

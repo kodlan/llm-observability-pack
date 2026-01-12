@@ -1,5 +1,6 @@
 services:
   vllm:
+    profiles: ["vllm"]
     image: vllm/vllm-openai:v0.14.1-cu130
     ports:
       - "8000:8000"
@@ -28,6 +29,37 @@ services:
       timeout: 10s
       retries: 3
       start_period: 60s
+
+  triton:
+    profiles: ["triton"]
+    image: nvcr.io/nvidia/tritonserver:24.12-vllm-python-py3
+    ports:
+      - "8000:8000"   # HTTP
+      - "8001:8001"   # gRPC
+      - "8002:8002"   # Metrics
+    volumes:
+      - ~/.cache/huggingface:/root/.cache/huggingface
+      - ../serving/triton/model_repository:/models
+    environment:
+      - VLLM_USAGE_STATS=0
+    command:
+      - tritonserver
+      - --model-repository=/models
+      - --metrics-port=8002
+      - --allow-metrics=true
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/v2/health/ready"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
 
   prometheus:
     image: prom/prometheus:latest
