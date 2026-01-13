@@ -1,0 +1,7 @@
+{
+  "model": "Qwen/Qwen2.5-1.5B-Instruct",
+  "dtype": "half",
+  "max_model_len": 2048,
+  "gpu_memory_utilization": 0.8,
+  "max_num_seqs": 16
+}
