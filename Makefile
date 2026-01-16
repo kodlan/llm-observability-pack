@@ -1,4 +1,4 @@
-.PHONY: up down logs test lint test-vllm test-triton load-test up-vllm up-triton
+.PHONY: up down logs test lint test-vllm test-triton load-test load-test-triton up-vllm up-triton
 
 COMPOSE_FILE := deploy/docker-compose.yml
 PROFILE ?= vllm
@@ -32,3 +32,6 @@ test-triton:
 
 load-test:
 	./scripts/load-test.sh $(CONCURRENCY)
+
+load-test-triton:
+	./scripts/load-test-triton.sh $(CONCURRENCY)
