@@ -1,0 +1,82 @@
+name: "qwen"
+backend: "tensorrtllm"
+max_batch_size: 8
+
+model_transaction_policy {
+  decoupled: true
+}
+
+input [
+  {
+    name: "text_input"
+    data_type: TYPE_STRING
+    dims: [ 1 ]
+  },
+  {
+    name: "max_tokens"
+    data_type: TYPE_INT32
+    dims: [ 1 ]
+    optional: true
+  },
+  {
+    name: "end_id"
+    data_type: TYPE_INT32
+    dims: [ 1 ]
+    optional: true
+  },
+  {
+    name: "pad_id"
+    data_type: TYPE_INT32
+    dims: [ 1 ]
+    optional: true
+  },
+  {
+    name: "streaming"
+    data_type: TYPE_BOOL
+    dims: [ 1 ]
+    optional: true
+  }
+]
+
+output [
+  {
+    name: "text_output"
+    data_type: TYPE_STRING
+    dims: [ -1 ]
+  }
+]
+
+instance_group [
+  {
+    count: 1
+    kind: KIND_GPU
+  }
+]
+
+parameters: {
+  key: "gpt_model_path"
+  value: {
+    string_value: "/models/qwen/1"
+  }
+}
+
+parameters: {
+  key: "max_beam_width"
+  value: {
+    string_value: "1"
+  }
+}
+
+parameters: {
+  key: "batching_type"
+  value: {
+    string_value: "inflight_fused_batching"
+  }
+}
+
+parameters: {
+  key: "enable_chunked_context"
+  value: {
+    string_value: "true"
+  }
+}

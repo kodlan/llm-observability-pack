@@ -1,9 +1,9 @@
 # llm-observability-pack
 
-A ready-to-run observability stack for LLM inference servers. Supports both **vLLM** and **NVIDIA Triton** backends with a single command switch. Includes Prometheus metrics collection, pre-configured Grafana dashboards, and load testing tools to generate traffic and visualize key LLM performance indicators.
+A ready-to-run observability stack for LLM inference servers. Supports **vLLM**, **NVIDIA Triton (vLLM backend)**, and **Triton (TensorRT-LLM backend)** with a single command switch. Includes Prometheus metrics collection, pre-configured Grafana dashboards, and load testing tools to generate traffic and visualize key LLM performance indicators.
 
 Features:
-- **Dual backend support** — switch between vLLM and Triton using Docker Compose profiles
+- **Three backend options** — vLLM, Triton+vLLM, or Triton+TensorRT-LLM via Docker Compose profiles
 - **Pre-provisioned dashboards** — Grafana dashboards auto-load on startup
 - **Load testing tools** — generate realistic traffic to populate metrics
 - **GPU monitoring** — track utilization, memory, and inference throughput
@@ -11,7 +11,8 @@ Features:
 ## Stack
 
 - **vLLM** — OpenAI-compatible inference server with Prometheus metrics
-- **Triton** — NVIDIA Triton Inference Server with vLLM backend
+- **Triton (vLLM)** — NVIDIA Triton Inference Server with vLLM backend
+- **Triton (TensorRT-LLM)** — NVIDIA Triton with TensorRT-LLM for maximum GPU optimization
 - **Prometheus** — scrapes and stores metrics from inference servers
 - **Grafana** — pre-provisioned dashboards for monitoring LLM performance
 
@@ -45,7 +46,10 @@ nvidia-smi  # should show Driver 580+ and CUDA 13.0
 cp deploy/env.example deploy/.env  # configure model and settings
 make up-vllm                       # start vLLM stack
 # or
-make up-triton                     # start Triton stack
+make up-triton                     # start Triton (vLLM backend) stack
+# or
+make compile-triton-trt                # compile model for TensorRT-LLM (one-time)
+make up-triton-trt              # start Triton (TensorRT-LLM backend) stack
 
 make logs                          # view logs
 make down                          # stop services
@@ -62,7 +66,16 @@ make down                          # stop services
 | Prometheus | http://localhost:9090 |
 | Grafana | http://localhost:3000 (admin/admin) |
 
-### Triton Stack
+### Triton Stack (vLLM backend)
+| Service | URL |
+|---------|-----|
+| Triton HTTP API | http://localhost:8000 |
+| Triton gRPC API | http://localhost:8001 |
+| Triton metrics | http://localhost:8002/metrics |
+| Prometheus | http://localhost:9090 |
+| Grafana | http://localhost:3000 (admin/admin) |
+
+### Triton Stack (TensorRT-LLM backend)
 | Service | URL |
 |---------|-----|
 | Triton HTTP API | http://localhost:8000 |
@@ -75,8 +88,9 @@ make down                          # stop services
 
 Test API with sample requests:
 ```bash
-make test-vllm    # test vLLM API
-make test-triton  # test Triton API
+make test-vllm           # test vLLM API
+make test-triton         # test Triton (vLLM backend) API
+make test-triton-trt  # test Triton (TensorRT-LLM backend) API
 ```
 
 ## Load Testing
@@ -90,14 +104,40 @@ make load-test CONCURRENCY=5    # custom concurrency
 ./scripts/load-test.sh 5        # or run directly
 ```
 
-### Triton
+### Triton (vLLM backend)
 ```bash
 make load-test-triton                  # default: 3 concurrent workers
 make load-test-triton CONCURRENCY=5    # custom concurrency
 ./scripts/load-test-triton.sh 5        # or run directly
 ```
 
+### Triton (TensorRT-LLM backend)
+```bash
+make load-test-triton-trt                  # default: 3 concurrent workers
+make load-test-triton-trt CONCURRENCY=5    # custom concurrency
+./scripts/load-test-triton-trt.sh 5        # or run directly
+```
+
 Press `Ctrl+C` to stop.
+
+## TensorRT-LLM Compilation
+
+TensorRT-LLM requires a one-time model compilation step before serving. The compilation produces GPU-specific engine files optimized for your hardware.
+
+```bash
+# Compile with default settings (Qwen2.5-1.5B-Instruct)
+make compile-triton-trt
+
+# Custom settings
+make compile-triton-trt MODEL_NAME=Qwen/Qwen2.5-1.5B-Instruct MAX_BATCH_SIZE=8 MAX_INPUT_LEN=1024 MAX_OUTPUT_LEN=1024
+```
+
+The compilation:
+1. Downloads the model from HuggingFace
+2. Converts to TensorRT-LLM checkpoint format
+3. Builds optimized TensorRT engine files
+
+Engine files are written to `serving/triton-trt/model_repository/qwen/1/`.
 
 ## Grafana Dashboards
 
@@ -124,7 +164,7 @@ Access Grafana at http://localhost:3000 (login: admin/admin).
 Verify Prometheus is scraping metrics:
 
 1. **Check targets** — http://localhost:9090/targets
-   - `vllm` or `triton` target should show as "UP"
+   - `vllm`, `triton`, or `triton-trt` target should show as "UP"
 
 2. **Query metrics**:
    ```bash
