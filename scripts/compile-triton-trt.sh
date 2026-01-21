@@ -37,36 +37,59 @@ if [ -f "$ENGINE_DIR/rank0.engine" ]; then
     rm -rf "$ENGINE_DIR"/*
 fi
 
-# Create temp directory for checkpoints
-CHECKPOINT_DIR=$(mktemp -d)
-trap "rm -rf $CHECKPOINT_DIR" EXIT
+# Create directories
+mkdir -p "$ENGINE_DIR"
+CHECKPOINT_DIR="$PROJECT_ROOT/serving/triton-trt/.cache/checkpoint"
+HF_CACHE_DIR="$PROJECT_ROOT/serving/triton-trt/.cache/huggingface"
+mkdir -p "$CHECKPOINT_DIR" "$HF_CACHE_DIR"
 
 echo "Pulling TensorRT-LLM image (if needed)..."
 docker pull $TRTLLM_IMAGE
 
 echo ""
 echo "Step 1/2: Converting HuggingFace model to TensorRT-LLM checkpoint..."
+echo "This will download the model and convert it (may take several minutes)..."
+echo ""
+
+# Use the built-in conversion script from TensorRT-LLM
 docker run --rm \
     --gpus all \
-    -v "$SCRIPT_DIR:/scripts:ro" \
-    -v "$CHECKPOINT_DIR:/checkpoints" \
-    -v "$ENGINE_DIR:/engine" \
-    -e HF_HOME=/checkpoints/hf_cache \
+    -v "$CHECKPOINT_DIR:/checkpoint" \
+    -v "$HF_CACHE_DIR:/root/.cache/huggingface" \
     $TRTLLM_IMAGE \
-    python3 /scripts/convert_checkpoint.py \
-        --model-name "$MODEL_NAME" \
-        --output-dir /checkpoints/trtllm_ckpt \
-        --dtype float16
+    bash -c "
+        # Find and use the Qwen conversion script
+        CONVERT_SCRIPT=\$(find /opt -name 'convert_checkpoint.py' -path '*/qwen/*' 2>/dev/null | head -1)
+
+        if [ -z \"\$CONVERT_SCRIPT\" ]; then
+            # Try alternative location
+            CONVERT_SCRIPT=\$(find /app -name 'convert_checkpoint.py' -path '*/qwen/*' 2>/dev/null | head -1)
+        fi
+
+        if [ -z \"\$CONVERT_SCRIPT\" ]; then
+            echo 'ERROR: Could not find Qwen conversion script in container'
+            echo 'Searching for available conversion scripts...'
+            find /opt /app -name 'convert_checkpoint.py' 2>/dev/null || true
+            exit 1
+        fi
+
+        echo \"Using conversion script: \$CONVERT_SCRIPT\"
+        python3 \"\$CONVERT_SCRIPT\" \
+            --model_dir $MODEL_NAME \
+            --output_dir /checkpoint \
+            --dtype float16 \
+            --tp_size 1
+    "
 
 echo ""
 echo "Step 2/2: Building TensorRT-LLM engine..."
 docker run --rm \
     --gpus all \
-    -v "$CHECKPOINT_DIR:/checkpoints" \
+    -v "$CHECKPOINT_DIR:/checkpoint" \
     -v "$ENGINE_DIR:/engine" \
     $TRTLLM_IMAGE \
     trtllm-build \
-        --checkpoint_dir /checkpoints/trtllm_ckpt \
+        --checkpoint_dir /checkpoint \
         --output_dir /engine \
         --gemm_plugin float16 \
         --gpt_attention_plugin float16 \
@@ -74,10 +97,12 @@ docker run --rm \
         --max_input_len $MAX_INPUT_LEN \
         --max_seq_len $((MAX_INPUT_LEN + MAX_OUTPUT_LEN)) \
         --paged_kv_cache enable \
-        --remove_input_padding enable \
-        --use_fused_mlp enable
+        --remove_input_padding enable
 
 echo ""
 echo "=== Compilation complete ==="
 echo "Engine files written to: $ENGINE_DIR"
 ls -la "$ENGINE_DIR"
+
+echo ""
+echo "You can now start the service with: make up-triton-trt"

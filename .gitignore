@@ -40,3 +40,9 @@ htmlcov/
 # OS
 .DS_Store
 Thumbs.db
+
+# TensorRT-LLM build artifacts
+serving/triton-trt/.cache/
+serving/triton-trt/model_repository/*/1/*.engine
+serving/triton-trt/model_repository/*/1/*.json
+serving/triton-trt/model_repository/*/1/*.npy
