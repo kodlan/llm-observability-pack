@@ -14,8 +14,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 ENGINE_DIR="$PROJECT_ROOT/serving/triton-trt/model_repository/qwen/1"
 
-# TensorRT-LLM image
+# Triton TRT-LLM container (has tensorrt_llm package installed)
 TRTLLM_IMAGE="nvcr.io/nvidia/tritonserver:24.12-trtllm-python-py3"
+
+# TensorRT-LLM version matching the container
+TRTLLM_VERSION="v0.16.0"
 
 echo "=== TensorRT-LLM Model Compilation ==="
 echo "Model: $MODEL_NAME"
@@ -39,47 +42,37 @@ fi
 
 # Create directories
 mkdir -p "$ENGINE_DIR"
-CHECKPOINT_DIR="$PROJECT_ROOT/serving/triton-trt/.cache/checkpoint"
-HF_CACHE_DIR="$PROJECT_ROOT/serving/triton-trt/.cache/huggingface"
+CACHE_DIR="$PROJECT_ROOT/serving/triton-trt/.cache"
+CHECKPOINT_DIR="$CACHE_DIR/checkpoint"
+HF_CACHE_DIR="$CACHE_DIR/huggingface"
+EXAMPLES_DIR="$CACHE_DIR/tensorrt_llm_examples"
 mkdir -p "$CHECKPOINT_DIR" "$HF_CACHE_DIR"
 
-echo "Pulling TensorRT-LLM image (if needed)..."
-docker pull $TRTLLM_IMAGE
+# Clone TensorRT-LLM examples if not present
+if [ ! -d "$EXAMPLES_DIR/examples/qwen" ]; then
+    echo "Cloning TensorRT-LLM examples..."
+    rm -rf "$EXAMPLES_DIR"
+    git clone --depth 1 --branch $TRTLLM_VERSION \
+        https://github.com/NVIDIA/TensorRT-LLM.git "$EXAMPLES_DIR"
+fi
 
 echo ""
 echo "Step 1/2: Converting HuggingFace model to TensorRT-LLM checkpoint..."
 echo "This will download the model and convert it (may take several minutes)..."
 echo ""
 
-# Use the built-in conversion script from TensorRT-LLM
+# Run conversion using the Triton container with mounted examples
 docker run --rm \
     --gpus all \
     -v "$CHECKPOINT_DIR:/checkpoint" \
     -v "$HF_CACHE_DIR:/root/.cache/huggingface" \
+    -v "$EXAMPLES_DIR/examples:/examples:ro" \
     $TRTLLM_IMAGE \
-    bash -c "
-        # Find and use the Qwen conversion script
-        CONVERT_SCRIPT=\$(find /opt -name 'convert_checkpoint.py' -path '*/qwen/*' 2>/dev/null | head -1)
-
-        if [ -z \"\$CONVERT_SCRIPT\" ]; then
-            # Try alternative location
-            CONVERT_SCRIPT=\$(find /app -name 'convert_checkpoint.py' -path '*/qwen/*' 2>/dev/null | head -1)
-        fi
-
-        if [ -z \"\$CONVERT_SCRIPT\" ]; then
-            echo 'ERROR: Could not find Qwen conversion script in container'
-            echo 'Searching for available conversion scripts...'
-            find /opt /app -name 'convert_checkpoint.py' 2>/dev/null || true
-            exit 1
-        fi
-
-        echo \"Using conversion script: \$CONVERT_SCRIPT\"
-        python3 \"\$CONVERT_SCRIPT\" \
-            --model_dir $MODEL_NAME \
-            --output_dir /checkpoint \
-            --dtype float16 \
-            --tp_size 1
-    "
+    python3 /examples/qwen/convert_checkpoint.py \
+        --model_dir $MODEL_NAME \
+        --output_dir /checkpoint \
+        --dtype float16 \
+        --tp_size 1
 
 echo ""
 echo "Step 2/2: Building TensorRT-LLM engine..."
