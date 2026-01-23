@@ -45,8 +45,9 @@ mkdir -p "$ENGINE_DIR"
 CACHE_DIR="$PROJECT_ROOT/serving/triton-trt/.cache"
 CHECKPOINT_DIR="$CACHE_DIR/checkpoint"
 HF_CACHE_DIR="$CACHE_DIR/huggingface"
+MODEL_DIR="$CACHE_DIR/models/$(echo $MODEL_NAME | tr '/' '_')"
 EXAMPLES_DIR="$CACHE_DIR/tensorrt_llm_examples"
-mkdir -p "$CHECKPOINT_DIR" "$HF_CACHE_DIR"
+mkdir -p "$CHECKPOINT_DIR" "$HF_CACHE_DIR" "$MODEL_DIR"
 
 # Clone TensorRT-LLM examples if not present
 if [ ! -d "$EXAMPLES_DIR/examples/qwen" ]; then
@@ -57,25 +58,53 @@ if [ ! -d "$EXAMPLES_DIR/examples/qwen" ]; then
 fi
 
 echo ""
-echo "Step 1/2: Converting HuggingFace model to TensorRT-LLM checkpoint..."
-echo "This will download the model and convert it (may take several minutes)..."
+echo "Step 1/3: Downloading model from HuggingFace..."
+echo "Model will be saved to: $MODEL_DIR"
 echo ""
 
-# Run conversion using the Triton container with mounted examples
+# Download the model first using the container
+docker run --rm \
+    -v "$MODEL_DIR:/model" \
+    -v "$HF_CACHE_DIR:/root/.cache/huggingface" \
+    $TRTLLM_IMAGE \
+    python3 -c "
+from huggingface_hub import snapshot_download
+import os
+
+model_name = '$MODEL_NAME'
+local_dir = '/model'
+
+print(f'Downloading {model_name}...')
+snapshot_download(
+    repo_id=model_name,
+    local_dir=local_dir,
+    local_dir_use_symlinks=False
+)
+print(f'Model downloaded to {local_dir}')
+print('Contents:')
+for f in os.listdir(local_dir):
+    print(f'  {f}')
+"
+
+echo ""
+echo "Step 2/3: Converting model to TensorRT-LLM checkpoint..."
+echo ""
+
+# Run conversion using the downloaded model directory
 docker run --rm \
     --gpus all \
     -v "$CHECKPOINT_DIR:/checkpoint" \
-    -v "$HF_CACHE_DIR:/root/.cache/huggingface" \
+    -v "$MODEL_DIR:/model:ro" \
     -v "$EXAMPLES_DIR/examples:/examples:ro" \
     $TRTLLM_IMAGE \
     python3 /examples/qwen/convert_checkpoint.py \
-        --model_dir $MODEL_NAME \
+        --model_dir /model \
         --output_dir /checkpoint \
         --dtype float16 \
         --tp_size 1
 
 echo ""
-echo "Step 2/2: Building TensorRT-LLM engine..."
+echo "Step 3/3: Building TensorRT-LLM engine..."
 docker run --rm \
     --gpus all \
     -v "$CHECKPOINT_DIR:/checkpoint" \
