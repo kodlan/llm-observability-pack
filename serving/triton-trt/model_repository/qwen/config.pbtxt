@@ -54,9 +54,23 @@ instance_group [
 ]
 
 parameters: {
+  key: "gpt_model_type"
+  value: {
+    string_value: "inflight_fused_batching"
+  }
+}
+
+parameters: {
   key: "gpt_model_path"
   value: {
     string_value: "/models/qwen/1"
+  }
+}
+
+parameters: {
+  key: "executor_worker_path"
+  value: {
+    string_value: "/opt/tritonserver/backends/tensorrtllm/trtllmExecutorWorker"
   }
 }
 
@@ -77,6 +91,6 @@ parameters: {
 parameters: {
   key: "enable_chunked_context"
   value: {
-    string_value: "true"
+    string_value: "false"
   }
 }
