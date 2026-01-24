@@ -77,8 +77,7 @@ local_dir = '/model'
 print(f'Downloading {model_name}...')
 snapshot_download(
     repo_id=model_name,
-    local_dir=local_dir,
-    local_dir_use_symlinks=False
+    local_dir=local_dir
 )
 print(f'Model downloaded to {local_dir}')
 print('Contents:')
@@ -115,6 +114,7 @@ docker run --rm \
         --output_dir /engine \
         --gemm_plugin float16 \
         --gpt_attention_plugin float16 \
+        --context_fmha disable \
         --max_batch_size $MAX_BATCH_SIZE \
         --max_input_len $MAX_INPUT_LEN \
         --max_seq_len $((MAX_INPUT_LEN + MAX_OUTPUT_LEN)) \
