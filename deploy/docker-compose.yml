@@ -70,6 +70,7 @@ services:
       - "8002:8002"   # Metrics
     volumes:
       - ../serving/triton-trt/model_repository:/models
+      - ../serving/triton-trt/.cache/models:/tokenizers:ro
     command:
       - tritonserver
       - --model-repository=/models

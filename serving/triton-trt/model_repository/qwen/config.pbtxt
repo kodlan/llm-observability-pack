@@ -94,3 +94,10 @@ parameters: {
     string_value: "false"
   }
 }
+
+parameters: {
+  key: "tokenizer_dir"
+  value: {
+    string_value: "/tokenizers/Qwen_Qwen2.5-1.5B-Instruct"
+  }
+}
