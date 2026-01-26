@@ -8,40 +8,47 @@ model_transaction_policy {
 
 input [
   {
-    name: "text_input"
-    data_type: TYPE_STRING
-    dims: [ 1 ]
+    name: "input_ids"
+    data_type: TYPE_INT32
+    dims: [ -1 ]
   },
   {
-    name: "max_tokens"
+    name: "input_lengths"
     data_type: TYPE_INT32
     dims: [ 1 ]
-    optional: true
+    reshape: { shape: [ ] }
+  },
+  {
+    name: "request_output_len"
+    data_type: TYPE_INT32
+    dims: [ 1 ]
+    reshape: { shape: [ ] }
   },
   {
     name: "end_id"
     data_type: TYPE_INT32
     dims: [ 1 ]
+    reshape: { shape: [ ] }
     optional: true
   },
   {
     name: "pad_id"
     data_type: TYPE_INT32
     dims: [ 1 ]
-    optional: true
-  },
-  {
-    name: "streaming"
-    data_type: TYPE_BOOL
-    dims: [ 1 ]
+    reshape: { shape: [ ] }
     optional: true
   }
 ]
 
 output [
   {
-    name: "text_output"
-    data_type: TYPE_STRING
+    name: "output_ids"
+    data_type: TYPE_INT32
+    dims: [ -1, -1 ]
+  },
+  {
+    name: "sequence_length"
+    data_type: TYPE_INT32
     dims: [ -1 ]
   }
 ]
@@ -92,12 +99,5 @@ parameters: {
   key: "enable_chunked_context"
   value: {
     string_value: "false"
-  }
-}
-
-parameters: {
-  key: "tokenizer_dir"
-  value: {
-    string_value: "/tokenizers/Qwen_Qwen2.5-1.5B-Instruct"
   }
 }

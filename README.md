@@ -34,10 +34,21 @@ Features:
 - Docker with NVIDIA Container Toolkit
 - NVIDIA driver 580+ (for CUDA 13.0 support)
 - GPU with compute capability >= 7.0 (RTX 20xx or newer)
+- Python 3.10+ (for TensorRT-LLM testing scripts)
 
-Verify with:
+Verify GPU:
 ```bash
 nvidia-smi  # should show Driver 580+ and CUDA 13.0
+```
+
+### Python Environment (for TensorRT-LLM testing)
+
+The TensorRT-LLM test scripts require Python dependencies for client-side tokenization:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements-triton-trt.txt
 ```
 
 ## Quick Start
@@ -120,9 +131,18 @@ make load-test-triton-trt CONCURRENCY=5    # custom concurrency
 
 Press `Ctrl+C` to stop.
 
-## TensorRT-LLM Compilation
+## TensorRT-LLM Setup
 
-TensorRT-LLM requires a one-time model compilation step before serving. The compilation produces GPU-specific engine files optimized for your hardware.
+TensorRT-LLM provides maximum GPU optimization but requires additional setup compared to vLLM.
+
+### GPU Requirements
+
+- **Ampere+ recommended** (RTX 30xx, RTX 40xx, A100, H100) — full feature support
+- **Turing (RTX 20xx)** — works but with `--context_fmha disable` (no fused attention)
+
+### Compilation
+
+TensorRT-LLM requires a one-time model compilation step. The compilation produces GPU-specific engine files optimized for your hardware.
 
 ```bash
 # Compile with default settings (Qwen2.5-1.5B-Instruct)
@@ -133,11 +153,22 @@ make compile-triton-trt MODEL_NAME=Qwen/Qwen2.5-1.5B-Instruct MAX_BATCH_SIZE=8 M
 ```
 
 The compilation:
-1. Downloads the model from HuggingFace
-2. Converts to TensorRT-LLM checkpoint format
-3. Builds optimized TensorRT engine files
+1. Clones TensorRT-LLM examples from GitHub
+2. Downloads the model from HuggingFace
+3. Converts to TensorRT-LLM checkpoint format
+4. Builds optimized TensorRT engine files
 
 Engine files are written to `serving/triton-trt/model_repository/qwen/1/`.
+
+### Client-Side Tokenization
+
+Unlike vLLM, the TensorRT-LLM Triton backend expects **pre-tokenized input** (token IDs, not text). The test and load-test scripts handle this automatically using the `transformers` library.
+
+Make sure to activate the Python venv before testing:
+```bash
+source .venv/bin/activate
+make test-triton-trt
+```
 
 ## Grafana Dashboards
 
