@@ -133,12 +133,16 @@ Press `Ctrl+C` to stop.
 
 ## TensorRT-LLM Setup
 
+> ⚠️ **GPU Requirement:** TensorRT-LLM 0.16.0 requires **Ampere or newer** GPUs (RTX 30xx, RTX 40xx, A100, H100). Turing GPUs (RTX 20xx) are **not supported** — the pre-compiled CUDA kernels don't include SM 7.5 binaries.
+
 TensorRT-LLM provides maximum GPU optimization but requires additional setup compared to vLLM.
 
 ### GPU Requirements
 
-- **Ampere+ recommended** (RTX 30xx, RTX 40xx, A100, H100) — full feature support
-- **Turing (RTX 20xx)** — works but with `--context_fmha disable` (no fused attention)
+- ✅ **RTX 30xx** (Ampere, SM 8.6) — fully supported
+- ✅ **RTX 40xx** (Ada Lovelace, SM 8.9) — fully supported
+- ✅ **A100/H100** (SM 8.0/9.0) — fully supported
+- ❌ **RTX 20xx** (Turing, SM 7.5) — not supported by TensorRT-LLM 0.16.0
 
 ### Compilation
 
@@ -175,6 +179,9 @@ make test-triton-trt
 Access Grafana at http://localhost:3000 (login: admin/admin).
 
 ### vLLM Overview
+
+<img src="screens/vllm.png" alt="vLLM Grafana Dashboard" width="400">
+
 - Request rate (success/failure)
 - Token throughput (generation + prompt tokens/s)
 - Time to First Token (TTFT) — p50/p95/p99
@@ -183,6 +190,9 @@ Access Grafana at http://localhost:3000 (login: admin/admin).
 - KV cache usage
 
 ### Triton Overview
+
+<img src="screens/triton-vllm.png" alt="Triton vLLM Grafana Dashboard" width="400">
+
 - Inference request rate (success/failure)
 - Inference throughput
 - GPU utilization
@@ -220,3 +230,12 @@ Verify Prometheus is scraping metrics:
    - `nv_inference_pending_request_count`
    - `nv_gpu_utilization`
    - `nv_gpu_memory_used_bytes`
+
+## TODO
+
+The following items could not be fully tested due to GPU architecture limitations (RTX 2070 / Turing):
+
+- [ ] **TensorRT-LLM end-to-end testing** — requires Ampere+ GPU (RTX 30xx or newer)
+- [ ] **TensorRT-LLM Grafana dashboard** — create dashboard once TRT-LLM is verified working
+- [ ] **TensorRT-LLM load testing validation** — verify load-test scripts produce expected metrics
+- [ ] **Performance comparison** — benchmark vLLM vs Triton+vLLM vs Triton+TensorRT-LLM
